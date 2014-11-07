@@ -27,17 +27,17 @@ public class CollectionWritableTest {
         list.add(new IntWritable(1));
         list.add(new IntWritable(2));
         list.add(new IntWritable(3));
-        
+
         CollectionWritable c = new CollectionWritable(IntWritable.class, list);
-        
+
         DataOutputBuffer buf = new DataOutputBuffer();
         c.write(buf);
-        
+
         DataInputBuffer in = new DataInputBuffer();
         in.reset(buf.getData(), buf.getLength());
         CollectionWritable roundTripped = new CollectionWritable();
         roundTripped.readFields(in);
-        
+
         Assert.assertEquals(list, roundTripped.getCollection());
         Iterator<? extends Writable> it = roundTripped.getCollection().iterator();
         Assert.assertEquals(new IntWritable(1), it.next());
@@ -45,19 +45,22 @@ public class CollectionWritableTest {
         Assert.assertEquals(new IntWritable(3), it.next());
         Assert.assertTrue(!it.hasNext());
     }
-    
+
+    /*
+    Removed as this is not supported
     @Test
     public void emptyCollection() throws Exception {
         Collection<Scan> scans = new HashSet<Scan>();
         DataOutputBuffer buf = new DataOutputBuffer();
         CollectionWritable c = new CollectionWritable(Scan.class, scans);
         c.write(buf);
-        
+
         DataInputBuffer in = new DataInputBuffer();
         in.reset(buf.getData(), buf.getLength());
         CollectionWritable roundTripped = new CollectionWritable();
         roundTripped.readFields(in);
-        
+
         Assert.assertEquals(0, roundTripped.getCollection().size());
     }
+    */
 }

@@ -22,6 +22,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -42,7 +43,7 @@ public class HBaseBackfillerTest extends EmbeddedClusterTestAbstract {
     public static final byte[] IDSERVICE_LOOKUP_TABLE = "idservice_data".getBytes();
     public static final byte[] IDSERVICE_COUNTER_TABLE = "idservice_counter".getBytes();
     public static final byte[] CF = "c".getBytes();
-    
+
     @BeforeClass
     public static void setupCluster() throws Exception {
         getTestUtil().createTable(CUBE_DATA_TABLE, CF);
@@ -59,101 +60,104 @@ public class HBaseBackfillerTest extends EmbeddedClusterTestAbstract {
             hba.deleteTable(SNAPSHOT_DEST_TABLE);
         }
     }
-    
+
     /**
      * Backfilling shouldn't change any live values if the backfilled counts are the same as the live
      * counts.
      */
     @Test
+    @Ignore("We no longer support merging when the source table is not empty")
     public void testBackfillIdempotence() throws Exception {
         Configuration conf = getTestUtil().getConfiguration();
         HTablePool pool = new HTablePool(conf, Integer.MAX_VALUE);
-        
-        IdService idService = new HBaseIdService(conf, IDSERVICE_LOOKUP_TABLE, 
+
+        IdService idService = new HBaseIdService(conf, IDSERVICE_LOOKUP_TABLE,
                 IDSERVICE_COUNTER_TABLE, CF, ArrayUtils.EMPTY_BYTE_ARRAY);
-        DbHarness<LongOp> hbaseDbHarness = new HBaseDbHarness<LongOp>(pool, 
-                ArrayUtils.EMPTY_BYTE_ARRAY, CUBE_DATA_TABLE, CF, LongOp.DESERIALIZER, 
+        DbHarness<LongOp> hbaseDbHarness = new HBaseDbHarness<LongOp>(pool,
+                ArrayUtils.EMPTY_BYTE_ARRAY, CUBE_DATA_TABLE, CF, LongOp.DESERIALIZER,
                 idService, CommitType.INCREMENT);
-        
+
         // Get some cube data into the source table, doesn't really matter what.
         DbHarnessTests.basicTest(hbaseDbHarness);
-        
+
         // Snapshot the source table
         Assert.assertTrue(new HBaseSnapshotter(conf, CUBE_DATA_TABLE, CF, SNAPSHOT_DEST_TABLE,
                 new Path("hdfs:///test_hfiles"), false, null, null).runWithCheckedExceptions());
         // The snapshot should be equal to the source table
         assertTablesEqual(conf, CUBE_DATA_TABLE, SNAPSHOT_DEST_TABLE);
-        
+
         // Simulate a backfill by copying the live cube
         Assert.assertTrue(new HBaseSnapshotter(conf, CUBE_DATA_TABLE, CF, BACKFILLED_TABLE,
                 new Path("hdfs:///test_hfiles"), true, null, null).runWithCheckedExceptions());
-        
+
         // Since the backfilled table is identical to the snapshot, there should be no changes to the
         // live production table
-        HBaseBackfillMerger backfiller = new HBaseBackfillMerger(conf, ArrayUtils.EMPTY_BYTE_ARRAY, 
+        HBaseBackfillMerger backfiller = new HBaseBackfillMerger(conf, ArrayUtils.EMPTY_BYTE_ARRAY,
                 CUBE_DATA_TABLE, SNAPSHOT_DEST_TABLE, BACKFILLED_TABLE, CF, LongOp.LongOpDeserializer.class);
         Assert.assertTrue(backfiller.runWithCheckedExceptions());
         assertTablesEqual(conf, CUBE_DATA_TABLE, SNAPSHOT_DEST_TABLE);
-        
+
     }
 
     /**
      * Backfilling 0 events should lead to an empty live table
      */
     @Test
+    @Ignore("We no longer support merging when the source table is not empty")
     public void testBackfillingWithEmpty() throws Exception {
         Configuration conf = getTestUtil().getConfiguration();
         HTablePool pool = new HTablePool(conf, Integer.MAX_VALUE);
-        
-        IdService idService = new HBaseIdService(conf, IDSERVICE_LOOKUP_TABLE, 
+
+        IdService idService = new HBaseIdService(conf, IDSERVICE_LOOKUP_TABLE,
                 IDSERVICE_COUNTER_TABLE, CF, ArrayUtils.EMPTY_BYTE_ARRAY);
-        DbHarness<LongOp> hbaseDbHarness = new HBaseDbHarness<LongOp>(pool, 
-                ArrayUtils.EMPTY_BYTE_ARRAY, CUBE_DATA_TABLE, CF, LongOp.DESERIALIZER, 
+        DbHarness<LongOp> hbaseDbHarness = new HBaseDbHarness<LongOp>(pool,
+                ArrayUtils.EMPTY_BYTE_ARRAY, CUBE_DATA_TABLE, CF, LongOp.DESERIALIZER,
                 idService, CommitType.INCREMENT);
-        
+
         // Get some cube data into the source table, doesn't really matter what.
         DbHarnessTests.basicTest(hbaseDbHarness);
-        
+
         // Copy the source table using the snapshotter
         Assert.assertTrue(new HBaseSnapshotter(conf, CUBE_DATA_TABLE, CF, SNAPSHOT_DEST_TABLE,
                 new Path("hdfs:///test_hfiles"), false, null, null).runWithCheckedExceptions());
-        
+
         // The snapshot should be equal to the source table
         assertTablesEqual(conf, CUBE_DATA_TABLE, SNAPSHOT_DEST_TABLE);
-        
-        HBaseBackfillMerger backfiller = new HBaseBackfillMerger(conf, ArrayUtils.EMPTY_BYTE_ARRAY, 
-                CUBE_DATA_TABLE, SNAPSHOT_DEST_TABLE, BACKFILLED_TABLE, CF, 
+
+        HBaseBackfillMerger backfiller = new HBaseBackfillMerger(conf, ArrayUtils.EMPTY_BYTE_ARRAY,
+                CUBE_DATA_TABLE, SNAPSHOT_DEST_TABLE, BACKFILLED_TABLE, CF,
                 LongOp.LongOpDeserializer.class);
         Assert.assertTrue(backfiller.runWithCheckedExceptions());
-        
+
         // After backfilling from an empty "backfilled" table, the live cube should have no rows
         Assert.assertTrue(!new HTable(conf, CUBE_DATA_TABLE).getScanner(CF).iterator().hasNext());
     }
-    
+
     @Test
+    @Ignore("We no longer support merging when the source table is not empty")
     public void testMutationsWhileBackfilling() throws Exception {
         Configuration conf = getTestUtil().getConfiguration();
         HTablePool pool = new HTablePool(conf, Integer.MAX_VALUE);
-        
-        IdService idService = new HBaseIdService(conf, IDSERVICE_LOOKUP_TABLE, 
+
+        IdService idService = new HBaseIdService(conf, IDSERVICE_LOOKUP_TABLE,
                 IDSERVICE_COUNTER_TABLE, CF, ArrayUtils.EMPTY_BYTE_ARRAY);
-        DbHarness<LongOp> hbaseDbHarness = new HBaseDbHarness<LongOp>(pool, 
-                ArrayUtils.EMPTY_BYTE_ARRAY, CUBE_DATA_TABLE, CF, LongOp.DESERIALIZER, 
+        DbHarness<LongOp> hbaseDbHarness = new HBaseDbHarness<LongOp>(pool,
+                ArrayUtils.EMPTY_BYTE_ARRAY, CUBE_DATA_TABLE, CF, LongOp.DESERIALIZER,
                 idService, CommitType.INCREMENT);
-        
-        Dimension<String> onlyDimension = new Dimension<String>("mydimension", 
+
+        Dimension<String> onlyDimension = new Dimension<String>("mydimension",
                 new StringToBytesBucketer(), true, 2);
-        
+
         Rollup rollup = new Rollup(onlyDimension, BucketType.IDENTITY);
         List<Dimension<?>> dims = ImmutableList.<Dimension<?>>of(onlyDimension);
         List<Rollup> rollups = ImmutableList.of(rollup);
         DataCube<LongOp> cube = new DataCube<LongOp>(dims, rollups);
         DataCubeIo<LongOp> cubeIo = new DataCubeIo<LongOp>(cube, hbaseDbHarness, 1,
                 Long.MAX_VALUE, SyncLevel.FULL_SYNC);
-        
+
         // Before doing any snapshotting/backfilling, there's one value "5" in the cube.
         cubeIo.writeSync(new LongOp(5), new WriteBuilder(cube).at(onlyDimension, "coord1"));
-        
+
         // Snapshot the source table
         Assert.assertTrue(new HBaseSnapshotter(conf, CUBE_DATA_TABLE, CF, SNAPSHOT_DEST_TABLE,
                 new Path("hdfs:///test_hfiles"), false, null, null).runWithCheckedExceptions());
@@ -161,65 +165,65 @@ public class HBaseBackfillerTest extends EmbeddedClusterTestAbstract {
         // Simulate a backfill by copying the live cube
         Assert.assertTrue(new HBaseSnapshotter(conf, CUBE_DATA_TABLE, CF, BACKFILLED_TABLE,
                 new Path("hdfs:///test_hfiles"), true, null, null).runWithCheckedExceptions());
-        
+
         // Simulate two writes to the live table that wouldn't be seen by the app as it backfills.
         // This is like a client doing a write concurrently with a backfill.
         cubeIo.writeSync(new LongOp(6), new WriteBuilder(cube).at(onlyDimension, "coord1"));
         cubeIo.writeSync(new LongOp(7), new WriteBuilder(cube).at(onlyDimension, "coord2"));
-        
+
         HBaseBackfillMerger backfiller = new HBaseBackfillMerger(conf, ArrayUtils.EMPTY_BYTE_ARRAY,
-                CUBE_DATA_TABLE, SNAPSHOT_DEST_TABLE, BACKFILLED_TABLE, CF, 
+                CUBE_DATA_TABLE, SNAPSHOT_DEST_TABLE, BACKFILLED_TABLE, CF,
                 LongOp.LongOpDeserializer.class);
         Assert.assertTrue(backfiller.runWithCheckedExceptions());
-        
+
         // After everyhing's done, the two writes that occurred concurrently with the backfill
         // should be seen in the live table. coord1 should be 5+6=11 and coord2 should be 7.
-        Assert.assertEquals(11L, 
+        Assert.assertEquals(11L,
                 cubeIo.get(new ReadBuilder(cube).at(onlyDimension, "coord1")).get().getLong());
-        Assert.assertEquals(7L, 
+        Assert.assertEquals(7L,
                 cubeIo.get(new ReadBuilder(cube).at(onlyDimension, "coord2")).get().getLong());
     }
 
-    public static void assertTablesEqual(Configuration conf, byte[] leftTableName, 
+    public static void assertTablesEqual(Configuration conf, byte[] leftTableName,
             byte[] rightTableName) throws Exception {
         HTable leftTable = new HTable(conf, leftTableName);
         HTable rightTable = new HTable(conf, rightTableName);
-        
+
         ResultScanner leftRs = leftTable.getScanner(CF);
         ResultScanner rightRs = rightTable.getScanner(CF);
         Iterator<Result> leftIterator = leftRs.iterator();
         Iterator<Result> rightIterator = rightRs.iterator();
-        
+
         MergeIterator<Result> mergeIt = new MergeIterator<Result>(ResultComparator.INSTANCE,
                 ImmutableList.of(leftIterator, rightIterator));
-        
+
         while(mergeIt.hasNext()) {
             Multimap<Iterator<Result>,Result> results = mergeIt.next();
-            
+
             List<KeyValue> leftKvs = results.get(leftIterator).iterator().next().list();
             List<KeyValue> rightKvs = results.get(rightIterator).iterator().next().list();
-            
+
             Assert.assertEquals(leftKvs.size(), rightKvs.size());
             for(int i=0; i<leftKvs.size(); i++) {
                 KeyValue leftKv = leftKvs.get(i);
                 KeyValue rightKv = rightKvs.get(i);
-                
+
                 // Compare every field except timestamp
                 Assert.assertArrayEquals(leftKv.getFamily(), rightKv.getFamily());
                 Assert.assertArrayEquals(leftKv.getQualifier(), rightKv.getQualifier());
                 Assert.assertArrayEquals(leftKv.getValue(), rightKv.getValue());
             }
         }
-        
+
         leftTable.close();
         rightTable.close();
     }
-    
+
     @Test
     public void testTableSplits() throws Exception {
         HBaseAdmin admin = getTestUtil().getHBaseAdmin();
         byte[] tableName = "oneSplitTest".getBytes();
-        
+
         // create table with one region, should be one scan
         HTable hTable = getTestUtil().createTable(tableName, CF);
         String[] keys = new String[] {"a", "c00", "c11", "e", "g"};
@@ -231,11 +235,11 @@ public class HBaseBackfillerTest extends EmbeddedClusterTestAbstract {
             hTable.put(put);
         }
         admin.flush(tableName);
-        
+
         byte[][] internalSplitKeys = BackfillUtil.getSplitKeys(hTable.getStartEndKeys());
         List<Scan> scans = HBaseBackfillMerger.scansThisCubeOnly(new byte[] {}, internalSplitKeys);
         Assert.assertEquals(1, scans.size());
-        
+
         admin.split(tableName, "d".getBytes());
         Thread.sleep(5000L); // hack: wait for split to happen
         admin.split(tableName, "c01".getBytes());
@@ -245,26 +249,26 @@ public class HBaseBackfillerTest extends EmbeddedClusterTestAbstract {
         internalSplitKeys = BackfillUtil.getSplitKeys(startsEnds);
         scans = HBaseBackfillMerger.scansThisCubeOnly(new byte[] {}, internalSplitKeys);
         Assert.assertEquals(3, scans.size());
-        
+
         scans = HBaseBackfillMerger.scansThisCubeOnly(new byte[] {'e'}, internalSplitKeys);
         Assert.assertEquals(1, scans.size());
-        
+
         // Scanning cube 'd' shouldn't include any rows, since there's no such cube
         scans = HBaseBackfillMerger.scansThisCubeOnly(new byte[] {'d'}, internalSplitKeys);
         Assert.assertEquals(1, scans.size());
         ResultScanner dScanner = hTable.getScanner(scans.get(0));
         Assert.assertEquals(0, iteratorCount(dScanner.iterator()));
         dScanner.close();
-        
-        // Scanning cube 'e' should only see the one row for 'e', and not see the row for 'g'. There 
+
+        // Scanning cube 'e' should only see the one row for 'e', and not see the row for 'g'. There
         // should only be one scan since all the rows should be in the same region.
         scans = HBaseBackfillMerger.scansThisCubeOnly(new byte[] {'e'}, internalSplitKeys);
         Assert.assertEquals(1, scans.size());
         ResultScanner eScanner = hTable.getScanner(scans.get(0));
         Assert.assertEquals(1, iteratorCount(eScanner.iterator()));
         eScanner.close();
-        
-        // Splitting cube c in half should yield 2 scans when we scan over it, and we should only get 
+
+        // Splitting cube c in half should yield 2 scans when we scan over it, and we should only get
         // back the 2 rows for cube c.
         scans = HBaseBackfillMerger.scansThisCubeOnly(new byte[] {'c'}, internalSplitKeys);
         Assert.assertEquals(2, scans.size());
@@ -274,14 +278,14 @@ public class HBaseBackfillerTest extends EmbeddedClusterTestAbstract {
         Assert.assertEquals(1, iteratorCount(cScanner2.iterator()));
         cScanner1.close();
         cScanner2.close();
-    }                
-                
+    }
+
     private static int iteratorCount(Iterator<?> it) {
         int count = 0;
         while(it.hasNext()) {
            count++;
            it.next();
         }
-        return count; 
+        return count;
     }
 }
