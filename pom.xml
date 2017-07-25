@@ -9,7 +9,7 @@
 
   <groupId>com.urbanairship</groupId>
   <artifactId>datacube</artifactId>
-  <version>1.3.1-GIT-20150629-NoMerge</version>
+  <version>1.3.1-GIT-20170725-NoMerge</version>
   <packaging>jar</packaging>
 
   <name>datacube</name>
@@ -126,7 +126,7 @@
         </property>
       </activation>
       <properties>
-        <hbaseVersion>1.0.0-cdh5.4.2</hbaseVersion>
+        <hbaseVersion>1.2.0-cdh5.12.0</hbaseVersion>
       </properties>
     </profile>
 
@@ -140,8 +140,8 @@
         </property>
       </activation>
       <properties>
-        <hadoopVersion>2.6.0-cdh5.4.2</hadoopVersion>
-        <hadoopMRVersion>2.6.0-mr1-cdh5.4.2</hadoopMRVersion>
+        <hadoopVersion>2.6.0-cdh5.12.0</hadoopVersion>
+        <hadoopMRVersion>2.6.0-mr1-cdh5.12.0</hadoopMRVersion>
       </properties>
     </profile>
 
