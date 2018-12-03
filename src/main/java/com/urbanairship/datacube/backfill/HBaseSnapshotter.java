@@ -25,6 +25,7 @@ import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 
 import org.apache.hadoop.hbase.io.compress.Compression.Algorithm;
 import org.apache.hadoop.hbase.mapreduce.HFileOutputFormat;
+import org.apache.hadoop.hbase.mapreduce.HFileOutputFormat2;
 import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.hbase.mapreduce.TableMapper;
@@ -124,7 +125,7 @@ public class HBaseSnapshotter implements Runnable {
 
             job.setJobName("DataCube HBase snapshotter");
             job.setJarByClass(HBaseSnapshotter.class);
-            HFileOutputFormat.configureIncrementalLoad(job, destHTable);
+            HFileOutputFormat2.configureIncrementalLoad(job, destHTable);
             HFileOutputFormat.setOutputPath(job, hfileOutputPath);
 
             job.getConfiguration().set("mapred.map.tasks.speculative.execution", "false");
@@ -201,8 +202,15 @@ public class HBaseSnapshotter implements Runnable {
         protected void map(ImmutableBytesWritable key, Result result,
                 Context context) throws IOException, InterruptedException {
 //            DebugHack.log("Snapshot mapper running");
+
             for(KeyValue kv: result.list()) {
-                context.write(key, kv);
+                try {
+                    // We clone to avoid
+                    // Type mismatch in value from map: expected org.apache.hadoop.hbase.KeyValue, received org.apache.hadoop.hbase.NoTagsKeyValue
+                    context.write(key, kv.clone());
+                } catch (CloneNotSupportedException e) {
+                    throw new IllegalStateException("Unable to clone KeYValue", e);
+                }
             }
         }
     }
